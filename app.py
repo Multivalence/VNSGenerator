@@ -26,7 +26,8 @@ class MyHelp(commands.HelpCommand):
 bot = commands.Bot(command_prefix=commands.when_mentioned_or(os.environ["PREFIX"]),
                    status=discord.Status.online,
                    intents=discord.Intents.all(),
-                   help_command=MyHelp())
+                   help_command=MyHelp(),
+                   activity=discord.Game(name="https://sellix.io/VNShop"))
 
 
 extensions = [

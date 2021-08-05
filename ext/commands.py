@@ -53,7 +53,7 @@ class Commands(commands.Cog):
         await self.bot.wait_until_ready()
 
         for i in self.bot.gen_channels:
-            self.generate_cooldown[i] = commands.CooldownMapping.from_cooldown(1.0, 60.0, commands.BucketType.user)
+            self.generate_cooldown[i] = commands.CooldownMapping.from_cooldown(1.0, 14400.0, commands.BucketType.user)
 
 
 

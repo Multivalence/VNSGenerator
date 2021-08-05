@@ -3,6 +3,7 @@ import random
 import aiofiles
 import aiohttp
 from discord.ext import commands
+from datetime import datetime
 from sqlite3 import IntegrityError
 from ext.checks import is_correct_channel
 from typing import Union
@@ -43,6 +44,54 @@ class Commands(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        self.generate_cooldown = dict()
+        self.cooldown_channels = dict()
+        self.bot.loop.create_task(self.updateCooldown())
+
+
+    async def updateCooldown(self):
+        await self.bot.wait_until_ready()
+
+        for i in self.bot.gen_channels:
+            self.generate_cooldown[i] = commands.CooldownMapping.from_cooldown(1.0, 60.0, commands.BucketType.user)
+
+
+
+    async def checkCooldown(self, ctx):
+
+        try:
+            channel_list = self.cooldown_channels[ctx.author.id]
+
+        except KeyError:
+            channel_list = []
+
+
+        if ctx.channel.id in channel_list:
+
+
+
+            bucket = self.generate_cooldown[ctx.channel.name].get_bucket(ctx.message)
+            retry_after = bucket.update_rate_limit()
+
+
+            if retry_after:
+                raise commands.CommandOnCooldown(cooldown=bucket, retry_after=retry_after)
+
+            else:
+                channel_list.remove(ctx.channel.id)
+
+
+
+        else:
+            channel_list.append(ctx.channel.id)
+            self.cooldown_channels[ctx.author.id] = channel_list
+
+            bucket = self.generate_cooldown[ctx.channel.name].get_bucket(ctx.message)
+            bucket.update_rate_limit()
+
+
+
+        return
 
 
 
@@ -112,10 +161,6 @@ class Commands(commands.Cog):
 
 
 
-
-
-
-
     @commands.guild_only()
     @commands.check(is_correct_channel)
     @commands.command(name='stock', description="Command to see how many accounts are left", aliases=['s','st'])
@@ -144,9 +189,10 @@ class Commands(commands.Cog):
 
     @commands.guild_only()
     @commands.check(is_correct_channel)
-    @commands.cooldown(1, 14400, commands.BucketType.user)
     @commands.command(name='generate', description="Command to generate account", aliases=['gen','g'])
     async def generate(self, ctx):
+
+        await self.checkCooldown(ctx=ctx)
 
         if len(self.bot.accounts[ctx.channel.name]) == 0:
             raise NoMoreAccounts
@@ -181,7 +227,19 @@ class Commands(commands.Cog):
         embed.add_field(name="Username", value=username)
         embed.add_field(name="Password", value=password)
 
+
+        embed2 = discord.Embed(
+            title="Account Generated",
+            description="Check your DM's for the account!",
+            colour=discord.Colour.default(),
+            timestamp=datetime.now()
+        )
+
+        embed2.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
+
+
         await ctx.author.send(embed=embed)
+        await ctx.send(embed=embed2)
 
 
 
